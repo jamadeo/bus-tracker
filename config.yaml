@@ -1,0 +1,37 @@
+name: "Bus Location Tracker"
+version: "1.0.13"
+slug: "bus_tracker"
+description: "Tracks the bus using Glympse"
+arch:
+  - aarch64
+startup: application
+boot: manual
+homeassistant_api: true
+map:
+  - config:rw
+services:
+  - mqtt:need
+
+# Default values that populate the UI on first install
+options:
+  glympse_api_key: ""
+  glympse_username: "viewer"
+  glympse_password: "password"
+  glympse_group_id: ""
+  device_id: "glympse_bus_tracker_001"
+  device_name: "Bus Tracker"
+  mqtt_topic_prefix: "bus_tracker"
+  poll_interval_s: 5
+  runtime_seconds: 3600
+
+# This defines the data types and UI field types
+schema:
+  glympse_api_key: str
+  glympse_username: str
+  glympse_password: password # Hides the input with asterisks in the UI
+  glympse_group_id: str
+  device_id: str
+  device_name: str
+  mqtt_topic_prefix: str
+  poll_interval_s: int
+  runtime_seconds: int
