@@ -81,7 +81,7 @@ struct LocationResponse {
 }
 #[derive(Deserialize, Debug)]
 struct LocationData {
-    location: Vec<Vec<f64>>,
+    location: Vec<Vec<Option<f64>>>,
 }
 #[derive(Debug)]
 struct LocationPoint {
@@ -153,8 +153,9 @@ async fn fetch_mqtt_credentials(
 
     if !res.status().is_success() {
         return Err(format!(
-            "Failed to fetch MQTT credentials from Supervisor: {}",
-            res.status()
+            "Failed to fetch MQTT credentials from Supervisor: {}: {:?}",
+            res.status(),
+            res.text().await.ok()
         )
         .into());
     }
@@ -182,7 +183,7 @@ fn build_client() -> reqwest::Result<HttpClient> {
     HttpClient::builder().default_headers(headers).build()
 }
 
-fn decode_location_stream(raw: &[Vec<f64>]) -> Vec<LocationPoint> {
+fn decode_location_stream(raw: &[Vec<Option<f64>>]) -> Vec<LocationPoint> {
     let mut points = Vec::with_capacity(raw.len());
     let (mut ts, mut lat, mut lng, mut alt, mut heading, mut speed, mut accuracy, mut source) =
         (0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
@@ -190,14 +191,14 @@ fn decode_location_stream(raw: &[Vec<f64>]) -> Vec<LocationPoint> {
         if row.len() < 8 {
             continue;
         }
-        ts += row[0];
-        lat += row[1];
-        lng += row[2];
-        alt += row[3];
-        heading += row[4];
-        speed += row[5];
-        accuracy += row[6];
-        source += row[7];
+        ts += row[0].unwrap_or_default();
+        lat += row[1].unwrap_or_default();
+        lng += row[2].unwrap_or_default();
+        alt += row[3].unwrap_or_default();
+        heading += row[4].unwrap_or_default();
+        speed += row[5].unwrap_or_default();
+        accuracy += row[6].unwrap_or_default();
+        source += row[7].unwrap_or_default();
         points.push(LocationPoint {
             timestamp: ts.round() as i64,
             lat: lat as f64 / 1_000_000.0,
@@ -370,8 +371,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     );
 
     let token = login(&http_client, &opts).await?;
-    let invite_code =
-        get_invite_from_group(&http_client, &token, &opts.glympse_group_id).await?;
+    let invite_code = get_invite_from_group(&http_client, &token, &opts.glympse_group_id).await?;
     eprintln!(
         "Resolved group '{}' to invite code '{}'",
         opts.glympse_group_id, invite_code

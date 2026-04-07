@@ -1,5 +1,5 @@
 name: "Bus Location Tracker"
-version: "1.0.13"
+version: "1.0.15"
 slug: "bus_tracker"
 description: "Tracks the bus using Glympse"
 arch:
