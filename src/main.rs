@@ -36,7 +36,10 @@ impl Opts {
 
         // Parse the JSON into the Args struct
         serde_json::from_str(&data)
-            .inspect_err(|e| eprintln!("error parsing: {}", e))
+            .inspect_err(|e| {
+                eprintln!("error parsing: {}", e);
+                eprintln!("raw content:\n{}", data);
+            })
             .expect("could not parse options")
     }
 }
@@ -125,7 +128,12 @@ async fn get_invite_from_group(
     if !res.status().is_success() {
         return Err(format!("Group API failed with status {}", res.status()).into());
     }
-    let data: GroupResponse = res.json().await?;
+    let body = res.text().await?;
+    let data: GroupResponse = serde_json::from_str(&body).map_err(|e| {
+        eprintln!("Failed to parse Group API response as JSON: {}", e);
+        eprintln!("Raw response: {}", body);
+        e
+    })?;
     if data.result != "ok" {
         return Err(format!("Group API failed: {}", data.result).into());
     }
@@ -153,14 +161,18 @@ async fn fetch_mqtt_credentials(
 
     if !res.status().is_success() {
         return Err(format!(
-            "Failed to fetch MQTT credentials from Supervisor: {}: {:?}",
-            res.status(),
-            res.text().await.ok()
+            "Failed to fetch MQTT credentials from Supervisor: {}",
+            res.status()
         )
         .into());
     }
 
-    let parsed: SupervisorServiceResponse = res.json().await?;
+    let body = res.text().await?;
+    let parsed: SupervisorServiceResponse = serde_json::from_str(&body).map_err(|e| {
+        eprintln!("Failed to parse Supervisor MQTT response as JSON: {}", e);
+        eprintln!("Raw response: {}", body);
+        e
+    })?;
 
     if parsed.result != "ok" {
         return Err("Supervisor returned non-ok result for MQTT credentials".into());
@@ -222,7 +234,12 @@ async fn login(client: &HttpClient, args: &Opts) -> Result<String, Box<dyn std::
     if !res.status().is_success() {
         return Err(format!("Login failed with status {}", res.status()).into());
     }
-    let data: LoginResponse = res.json().await?;
+    let body = res.text().await?;
+    let data: LoginResponse = serde_json::from_str(&body).map_err(|e| {
+        eprintln!("Failed to parse Login response as JSON: {}", e);
+        eprintln!("Raw response: {}", body);
+        e
+    })?;
     if data.result != "ok" {
         return Err(format!("Login failed: {}", data.result).into());
     }
@@ -247,7 +264,12 @@ async fn get_location(
     if !res.status().is_success() {
         return Err(format!("Location API failed with status {}", res.status()).into());
     }
-    let data: LocationResponse = res.json().await?;
+    let body = res.text().await?;
+    let data: LocationResponse = serde_json::from_str(&body).map_err(|e| {
+        eprintln!("Failed to parse Location API response as JSON: {}", e);
+        eprintln!("Raw response: {}", body);
+        e
+    })?;
     if data.result != "ok" {
         return Err(format!("Location API failed: {}", data.result).into());
     }
